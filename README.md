@@ -4,7 +4,6 @@
 - [x] Add command and event listners (05/12/2024)
 - [x] Listen for all events (05/12/2024)
 - [x] Add embed handler (05/12/2024)
-- [ ] Add Sample Commands
 - [ ] Sample Commands:
     - [ ] Reaction Command
     - [ ] Slash Command

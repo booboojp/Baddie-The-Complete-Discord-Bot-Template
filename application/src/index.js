@@ -2,74 +2,61 @@ const DiscordAPI = require('discord.js');
 const configuration = require('./config.js');
 const { loadEvents } = require('./handlers/eventHandler.js');
 const { loadCommands } = require('./handlers/commandHandler.js');
+const fileSystem = require('fs');
+const path = require('path');
 
-/**
- * The main entry point for the Discord bot application.
- * 
- * This function initializes the Discord client with the specified intents,
- * loads event and command handlers, and logs the client into Discord using the provided token.
- * 
- * @async
- * @function main
- * 
- * @see {@link ./handlers/eventHandler.js|Event Handler}
- * @see {@link ./handlers/commandHandler.js|Command Handler}
- * @see {@link ./config.js|Configuration File}
- * 
- * @throws {Error} Throws an error if there is an issue loading events, commands, or logging into Discord.
- */
 async function main() {
-    await console.clear();
-    /**
-     * Creates a new Discord client instance with specified intents.
-     * 
-     * @param {Object} options - The options for the client.
-     * @param {Array} options.intents - The intents to enable for the client.
-     * 
-     * @param {GatewayIntentBits} options.intents.Guilds - Enables guild-related events.
-     * @param {GatewayIntentBits} options.intents.GuildMembers - Enables guild member-related events.
-     * @param {GatewayIntentBits} options.intents.GuildBans - Enables guild ban-related events.
-     * @param {GatewayIntentBits} options.intents.GuildEmojisAndStickers - Enables guild emoji and sticker-related events.
-     * @param {GatewayIntentBits} options.intents.GuildIntegrations - Enables guild integration-related events.
-     * @param {GatewayIntentBits} options.intents.GuildWebhooks - Enables guild webhook-related events.
-     * @param {GatewayIntentBits} options.intents.GuildInvites - Enables guild invite-related events.
-     * @param {GatewayIntentBits} options.intents.GuildVoiceStates - Enables guild voice state-related events.
-     * @param {GatewayIntentBits} options.intents.GuildPresences - Enables guild presence-related events.
-     * @param {GatewayIntentBits} options.intents.GuildMessages - Enables guild message-related events.
-     * @param {GatewayIntentBits} options.intents.GuildMessageReactions - Enables guild message reaction-related events.
-     * @param {GatewayIntentBits} options.intents.GuildMessageTyping - Enables guild message typing-related events.
-     * @param {GatewayIntentBits} options.intents.DirectMessages - Enables direct message-related events.
-     * @param {GatewayIntentBits} options.intents.DirectMessageReactions - Enables direct message reaction-related events.
-     * @param {GatewayIntentBits} options.intents.DirectMessageTyping - Enables direct message typing-related events.
-     * @param {GatewayIntentBits} options.intents.MessageContent - Enables access to message content.
-     * @param {GatewayIntentBits} options.intents.GuildScheduledEvents - Enables guild scheduled event-related events.
-     * @param {GatewayIntentBits} options.intents.AutoModerationConfiguration - Enables auto-moderation configuration-related events.
-     * @param {GatewayIntentBits} options.intents.AutoModerationExecution - Enables auto-moderation execution-related events.
-     */
     const client = new DiscordAPI.Client({
         intents: [
             DiscordAPI.GatewayIntentBits.Guilds,
             DiscordAPI.GatewayIntentBits.GuildMembers,
-            DiscordAPI.GatewayIntentBits.GuildEmojisAndStickers,
-            DiscordAPI.GatewayIntentBits.GuildIntegrations,
-            DiscordAPI.GatewayIntentBits.GuildWebhooks,
-            DiscordAPI.GatewayIntentBits.GuildInvites,
-            DiscordAPI.GatewayIntentBits.GuildVoiceStates,
-            DiscordAPI.GatewayIntentBits.GuildPresences,
             DiscordAPI.GatewayIntentBits.GuildMessages,
-            DiscordAPI.GatewayIntentBits.GuildMessageReactions,
-            DiscordAPI.GatewayIntentBits.GuildMessageTyping,
-            DiscordAPI.GatewayIntentBits.DirectMessages,
-            DiscordAPI.GatewayIntentBits.DirectMessageReactions,
-            DiscordAPI.GatewayIntentBits.DirectMessageTyping,
             DiscordAPI.GatewayIntentBits.MessageContent,
-            DiscordAPI.GatewayIntentBits.GuildScheduledEvents,
-            DiscordAPI.GatewayIntentBits.AutoModerationConfiguration,
-            DiscordAPI.GatewayIntentBits.AutoModerationExecution
+            DiscordAPI.GatewayIntentBits.GuildMessageReactions,
         ],
     });
-    await loadEvents(client);
-    await loadCommands(client);
-    client.login(configuration.token);
+
+    client.once('ready', async () => {
+        console.log(`Logged in as ${client.user.tag}!`);
+
+        await loadEvents(client);
+        await loadCommands(client);
+
+        const reactionRolesPath = path.join(__dirname, '../src/data/reactionRoles');
+        console.log(`Restoring reaction role data from ${reactionRolesPath}`);
+        if (fileSystem.existsSync(reactionRolesPath)) {
+            console.log('Restoring reaction role data');
+            const reactionRoleFiles = fileSystem.readdirSync(reactionRolesPath).filter(file => file.endsWith('.json'));
+
+            for (const file of reactionRoleFiles) {
+                const data = JSON.parse(fileSystem.readFileSync(path.join(reactionRolesPath, file), 'utf8'));
+                console.log(`Restoring reaction role data for message ${data.messageid}`);
+                const channel = await client.channels.fetch(data.channelId);
+                const message = await channel.messages.fetch(data.messageid);
+
+                message.reactions.cache.each(reaction => {
+                    reaction.users.fetch().then(users => {
+                        users.each(user => {
+                            if (!user.bot) {
+                                const mapping = data.reactions.find(r => r.emoji === reaction.emoji.name || r.emoji === reaction.emoji.id);
+                                if (mapping) {
+                                    const role = channel.guild.roles.cache.get(mapping.roleId);
+                                    if (role) {
+                                        const member = channel.guild.members.cache.get(user.id);
+                                        if (member && !member.roles.cache.has(role.id)) {
+                                            member.roles.add(role).catch(console.error);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    });
+                });
+            }
+        }
+    });
+
+    await client.login(configuration.token);
 }
-main();
+
+main().catch(console.error);
