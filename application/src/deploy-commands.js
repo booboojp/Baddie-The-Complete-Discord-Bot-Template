@@ -1,8 +1,9 @@
-const DiscordBuildersAPI = require('@discordjs/builders');
-const DiscordRestAPI = require('@discordjs/rest');
-const DiscordTypeAPI = require('discord-api-types/v9');
+const { SlashCommandBuilder } = require('@discordjs/builders');
+const { REST } = require('@discordjs/rest');
+const { Routes } = require('discord-api-types/v9');
 const configuration = require('./config.js');
-
+const fs = require('fs');
+const path = require('path');
 
 /**
  * An array of slash commands to be registered with the Discord API.
@@ -19,20 +20,22 @@ const configuration = require('./config.js');
  *   new SlashCommandBuilder().setName('hello').setDescription('Says hello!')
  * ].map(command => command.toJSON());
  */
-const commands = [
-  new DiscordBuildersAPI.SlashCommandBuilder().setName('ping').setDescription('Replies with Pong!'),
-  new DiscordBuildersAPI.SlashCommandBuilder().setName('hello').setDescription('Says hello!')
-]
-  .map(command => command.toJSON());
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
-const rest = new DiscordRestAPI.REST({ version: '9' }).setToken(configuration.token);
+const commands = commandFiles.map(file => {
+    const command = require(path.join(commandsPath, file));
+    return command.data.toJSON();
+});
+
+const rest = new REST({ version: '9' }).setToken(configuration.token);
 
 (async () => {
     try {
         console.log(`Started refreshing ${commands.length} application (/) commands.`);
 
         await rest.put(
-            DiscordTypeAPI.Routes.applicationGuildCommands(configuration.clientId, configuration.guildId),
+            Routes.applicationGuildCommands(configuration.clientId, configuration.guildId),
             { body: commands },
         );
 

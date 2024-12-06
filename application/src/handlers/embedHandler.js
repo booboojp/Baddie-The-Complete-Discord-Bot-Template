@@ -39,46 +39,39 @@ const DiscordAPI = require('discord.js');
  * @see {@link ../commands/command.ping.js|Ping Command}
  * @see {@link ../events/event.messageCreate.js|Message Create Event}
  */
-async function generateEmbedFromFile(filename) {
+async function generateEmbedFromFile(filename, data = {}) {
     const filePath = path.resolve(__dirname, '../', filename);
     if (!fs.existsSync(filePath)) {
         throw new Error(`Embed configuration file not found: ${filePath}`);
     }
 
-    const embedConfig = require(filePath);
+    let embedConfig = require(filePath);
 
-    const {
-        type,
-        title = 'Default Title',
-        description = 'Default Description',
-        fields = [],
-        footer = { text: 'Default Footer' },
-        color = '#0099ff',
-        url = '',
-        timestamp = new Date(),
-        thumbnail = '',
-        image = '',
-        author = {}
-    } = embedConfig;
+    // Convert embedConfig to string and replace placeholders
+    const embedString = JSON.stringify(embedConfig);
+    const filledEmbedString = embedString.replace(/\$\{(\w+)\}/g, (_, key) => data[key] || '');
 
-    console.log('Generating embed with parameters:', { type, title, description, fields, footer, color, url, timestamp, thumbnail, image, author });
+    // Parse back to object
+    embedConfig = JSON.parse(filledEmbedString);
 
+    // Proceed with building the embed as before
     const embed = new DiscordAPI.EmbedBuilder()
-        .setTitle(title)
-        .setDescription(description)
-        .setColor(color)
-        .setTimestamp(timestamp);
+        .setTitle(embedConfig.title)
+        .setDescription(embedConfig.description)
+        .setColor(embedConfig.color)
 
-    if (url) embed.setURL(url);
-    if (thumbnail) embed.setThumbnail(thumbnail);
-    if (image) embed.setImage(image);
-    if (author.name) embed.setAuthor(author);
-    if (footer.text) embed.setFooter(footer);
-
-    fields.forEach(field => {
-        if (field.name && field.value) {
-            embed.addFields({ name: field.name, value: field.value, inline: field.inline || false });
+    if (embedConfig.timestamp) {
+        const timestamp = new Date(embedConfig.timestamp);
+        if (!isNaN(timestamp.getTime())) {
+            embed.setTimestamp(timestamp);
+        } else {
+            console.error('Invalid timestamp provided:', embedConfig.timestamp);
         }
+    }
+    // Set other embed properties...
+    // Add fields
+    embedConfig.fields.forEach(field => {
+        embed.addFields({ name: field.name, value: field.value, inline: field.inline || false });
     });
 
     return embed;
