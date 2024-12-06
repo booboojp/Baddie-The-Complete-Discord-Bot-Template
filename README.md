@@ -1,0 +1,14 @@
+# Features
+- [x] Set up project repository (05/12/2024)
+- [x] Create Main File (05/12/2024)
+- [x] Add command and event listners (05/12/2024)
+- [ ] Listen for all events
+- [ ] Add embed template
+- [ ] Add custom logger.
+- [ ] Add Sample Commands
+- [ ] Sample Commands:
+    - [ ] Reaction Command
+    - [ ] Slash Command
+    - [ ] Message Command
+    - [ ] Menu Command
+- [ ] 
