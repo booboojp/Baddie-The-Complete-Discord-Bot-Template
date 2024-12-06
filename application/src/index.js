@@ -3,6 +3,21 @@ const configuration = require('./config.js');
 const { loadEvents } = require('./handlers/eventHandler.js');
 const { loadCommands } = require('./handlers/commandHandler.js');
 
+/**
+ * The main entry point for the Discord bot application.
+ * 
+ * This function initializes the Discord client with the specified intents,
+ * loads event and command handlers, and logs the client into Discord using the provided token.
+ * 
+ * @async
+ * @function main
+ * 
+ * @see {@link ./handlers/eventHandler.js|Event Handler}
+ * @see {@link ./handlers/commandHandler.js|Command Handler}
+ * @see {@link ./config.js|Configuration File}
+ * 
+ * @throws {Error} Throws an error if there is an issue loading events, commands, or logging into Discord.
+ */
 async function main() {
     await console.clear();
     /**
