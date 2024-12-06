@@ -20,6 +20,7 @@ module.exports = {
             return interaction.editReply({ content: 'No reaction role data found for that message.', ephemeral: true });
         }
 
+        const data = JSON.parse(fileSystem.readFileSync(dataPath, 'utf8'));
         fileSystem.unlinkSync(dataPath);
         try {
             const channel = await interaction.client.channels.fetch(data.channelId);
