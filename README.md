@@ -2,8 +2,8 @@
 - [x] Set up project repository (05/12/2024)
 - [x] Create Main File (05/12/2024)
 - [x] Add command and event listners (05/12/2024)
-- [ ] Listen for all events
-- [ ] Add embed template
+- [x] Listen for all events (05/12/2024)
+- [x] Add embed handler (05/12/2024)
 - [ ] Add custom logger.
 - [ ] Add Sample Commands
 - [ ] Sample Commands:
@@ -11,4 +11,3 @@
     - [ ] Slash Command
     - [ ] Message Command
     - [ ] Menu Command
-- [ ] 
